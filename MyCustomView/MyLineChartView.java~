@@ -9,9 +9,11 @@ import android.util.AttributeSet;
 import android.util.DisplayMetrics;
 import android.util.TypedValue;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.WindowManager;
 
 import com.example.qq.myweatherviewdemo.R;
+import com.orhanobut.logger.Logger;
 
 /**
  * author YuanYingqiu
@@ -49,37 +51,37 @@ public class MyLineChartView extends View {
     private int[] mData;
 
 
+
     private Paint mLinePaint;
     private Paint mDotPaint;
     private Paint mTextPaint;
 
     private float mTextSize;
-    private int mScreenWidth;
 
 
     public MyLineChartView(Context context) {
-        this(context, null);
+        this(context,null);
     }
 
     public MyLineChartView(Context context, AttributeSet attrs) {
-        this(context, attrs, 0);
+        this(context, attrs,0);
     }
 
     public MyLineChartView(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
         TypedArray ta = context.obtainStyledAttributes(attrs, R.styleable.MyLineChartView);
-        int colorLine = ta.getColor(R.styleable.MyLineChartView_color_line, DEFAULT_COLOR);
-        int colorDot = ta.getColor(R.styleable.MyLineChartView_color_dot, DEFAULT_COLOR);
-        int colorText = ta.getColor(R.styleable.MyLineChartView_color_text, DEFAULT_COLOR);
+        int colorLine = ta.getColor(R.styleable.MyLineChartView_color_line,DEFAULT_COLOR);
+        int colorDot = ta.getColor(R.styleable.MyLineChartView_color_dot,DEFAULT_COLOR);
+        int colorText = ta.getColor(R.styleable.MyLineChartView_color_text,DEFAULT_COLOR);
 
         mTextSize = ta.getDimension(R.styleable.MyLineChartView_size_text,
-                TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, 12, getResources().getDisplayMetrics()));
+                TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP,12,getResources().getDisplayMetrics()));
 
         ta.recycle();
 
         //线的宽度
         float strokeWidth = TypedValue.applyDimension(
-                TypedValue.COMPLEX_UNIT_DIP, 1.5f, getResources().getDisplayMetrics());
+                TypedValue.COMPLEX_UNIT_DIP,1.5f,getResources().getDisplayMetrics());
         mLinePaint = new Paint();
         mLinePaint.setAntiAlias(true);
         mLinePaint.setDither(true);
@@ -103,73 +105,62 @@ public class MyLineChartView extends View {
         WindowManager wm = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
         DisplayMetrics metrics = new DisplayMetrics();
         wm.getDefaultDisplay().getMetrics(metrics);
-        mScreenWidth = metrics.widthPixels;
+        int screenWidth = metrics.widthPixels;
 
 
         //将屏幕分成9份
-        mOnePart = 1.0f * mScreenWidth / 9;
+        mOnePart = 1.0f*screenWidth/9;
 
-        mTopAndBottomSpace = mTextSize * 1.5f;
-        mDotRadius = strokeWidth * 2.0f;
-        mTextAndDotSpace = mDotRadius * 2.0f;
-
+        mTopAndBottomSpace = mTextSize *1.5f;
+        mDotRadius = strokeWidth*2.0f;
+        mTextAndDotSpace = mDotRadius*2.0f;
 
     }
-
-    public void setData(int[] data) {
+    public void setData(int[] data){
         this.mData = data;
-
+        computeWidthOfThisView();
     }
-
-    @Override
-    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
-
-        if (mData == null || mData.length == 0)
-            return;
-
-        setMeasuredDimension(measureWidth(), heightMeasureSpec);
-    }
-
-
-    /**
-     * 如果计算出的view所需宽度 小于 屏幕宽度，就返回屏幕宽度
-     * @return view的宽度
-     */
-    private int measureWidth() {
-        return (int) Math.max(mScreenWidth, computeWidthOfThisView());
-    }
-
 
     /**
      * 根据数据计算出view所需要的宽度
-     * <p/>
+     *
      * |------------------------------------|
      * |                                    |
      * |1.5 |--------------------------|1.5 |
      * |------------------------------------|
      */
-    private float computeWidthOfThisView() {
-        return mData.length * mOnePart + mOnePart * 2;
+    private void computeWidthOfThisView() {
+
+
+
+        float viewLength = mData.length*mOnePart+mOnePart*2;
+        Logger.e("viewLength>>>>>>>>>>>"+viewLength);
+
+        ViewGroup.LayoutParams params = getLayoutParams();
+        params.width = (int) viewLength;
+        //但View的大小改变时会调用onSizeChanged
+        setLayoutParams(params);
+
     }
 
     @Override
-    protected void onDraw(Canvas canvas) {
-        super.onDraw(canvas);
+    protected void onSizeChanged(int w, int h, int oldw, int oldh) {
+        super.onSizeChanged(w, h, oldw, oldh);
         setXYAxis();
-        drawChart(canvas);
     }
-
 
     /**
      * 设置 x轴
      */
     private void setXYAxis() {
-        if (mData == null || mData.length == 0)
+        if(mData == null || mData.length == 0)
             return;
 
+        Logger.e("setXYAxis");
         setXAxis();
         setYAxis();
+
+        invalidate();
 
     }
 
@@ -178,39 +169,39 @@ public class MyLineChartView extends View {
      */
     private void setYAxis() {
 
-        float minData = mData[0];
+        float minData = 0.0f;
         float maxData = minData;
 
-        for (float data : mData) {
-            if (data < minData)
+        for (float data : mData){
+            if(data < minData)
                 minData = data;
-            if (data > maxData)
+            if(data > maxData)
                 maxData = data;
         }
 
         float range = Math.abs(maxData - minData);
 
 
-        float lineToTopAndBottomPadding = mTopAndBottomSpace + mTextSize + mTextAndDotSpace + mDotRadius;
+        float lineToTopAndBottomPadding = mTopAndBottomSpace+mTextSize+mTextAndDotSpace+mDotRadius;
 
         int viewHeight = getMeasuredHeight();
-
+        Logger.e("viewHeight>>>>>>>>>>>>"+viewHeight);
 
         //折线 在view中可以占的最大高度
-        float maxYAxisHeight = viewHeight - lineToTopAndBottomPadding * 2;
+        float maxYAxisHeight = viewHeight - lineToTopAndBottomPadding*2;
 
         int dataLength = mData.length;
         mYAxis = new float[dataLength];
 
         //数据全部等于0 或者 相等
-        if (range == 0) {
-            for (int i = 0; i < dataLength; i++)
-                mYAxis[i] = maxYAxisHeight / 2 + lineToTopAndBottomPadding;
-        } else {
+        if(range == 0){
+            for (int i = 0 ; i < dataLength ; i++ )
+                mYAxis[i] = maxYAxisHeight/2 + lineToTopAndBottomPadding;
+        }else {
             //防止数据大于viewHeight 导致y的坐标点在view的外面
-            float partHeight = maxYAxisHeight / range;
+            float partHeight = maxYAxisHeight/range;
             for (int i = 0; i < dataLength; i++) {
-                mYAxis[i] = viewHeight - lineToTopAndBottomPadding - (partHeight * (mData[i] - minData));
+                mYAxis[i] = viewHeight - lineToTopAndBottomPadding-(partHeight*(mData[i]-minData));
             }
         }
 
@@ -222,63 +213,54 @@ public class MyLineChartView extends View {
 
         int dataLength = mData.length;
         mXAxis = new float[dataLength];
-
-        int viewWidth = getMeasuredWidth();
-
-        if (viewWidth > mScreenWidth){
-            for (int i = 0; i < dataLength; i++) {
-                mXAxis[i] = (mSidePaddingScale + i) * mOnePart;
-            }
-        }else {
-
-            float part = 1.0f*viewWidth/dataLength;
-            float left = part/2;
-            for (int i = 0 ; i < dataLength ; i++){
-                mXAxis[i] = left;
-                left += part;
-            }
+        for (int i = 0 ; i < dataLength ; i++){
+            mXAxis[i] = (mSidePaddingScale+i)*mOnePart;
         }
-
-
-
     }
 
 
+    @Override
+    protected void onDraw(Canvas canvas) {
+        super.onDraw(canvas);
+        drawChart(canvas);
+    }
+
     private void drawChart(Canvas canvas) {
-        if (mData == null || mData.length == 0)
+        if(mData == null || mData.length == 0)
             return;
 
+
         int dataLength = mData.length;
-        for (int i = 0; i < dataLength; i++) {
+        for (int i = 0 ; i < dataLength ; i++){
 
             int data = mData[i];
             float startX = mXAxis[i];
             float startY = mYAxis[i];
 
-            drawDot(canvas, startX, startY);
-            drawText(canvas, startX, startY, data);
+            drawDot(canvas,startX,startY);
+            drawText(canvas,startX,startY,data);
 
-            if (i < dataLength - 1) {
-                float endX = mXAxis[i + 1];
-                float endY = mYAxis[i + 1];
-                drawLine(canvas, startX, startY, endX, endY);
+            if(i<dataLength-1){
+                float endX = mXAxis[i+1];
+                float endY = mYAxis[i+1];
+                drawLine(canvas,startX,startY,endX,endY);
             }
         }
     }
 
     private void drawLine(Canvas canvas, float startX, float startY, float endX, float endY) {
         Path path = new Path();
-        path.moveTo(startX, startY);
-        path.lineTo(endX, endY);
-        canvas.drawPath(path, mLinePaint);
+        path.moveTo(startX,startY);
+        path.lineTo(endX,endY);
+        canvas.drawPath(path,mLinePaint);
     }
 
     private void drawText(Canvas canvas, float startX, float startY, int data) {
-        canvas.drawText(data + "°", startX - mTextAndDotSpace, startY - mTextAndDotSpace, mTextPaint);
+        canvas.drawText(data+"°",startX-mTextAndDotSpace,startY-mTextAndDotSpace,mTextPaint);
     }
 
     private void drawDot(Canvas canvas, float startX, float startY) {
-        canvas.drawCircle(startX, startY, mDotRadius, mDotPaint);
+        canvas.drawCircle(startX,startY,mDotRadius,mDotPaint);
     }
 
 
