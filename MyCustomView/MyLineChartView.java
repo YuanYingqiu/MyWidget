@@ -20,6 +20,10 @@ import com.orhanobut.logger.Logger;
  * email 1049852196@qq.com
  * date 16-9-11
  */
+
+/**
+*配合HorizontalScrollView使用
+*/
 public class MyLineChartView extends View {
     public static final int DEFAULT_COLOR = 0xff009688;
 
